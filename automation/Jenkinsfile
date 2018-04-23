@@ -1,0 +1,53 @@
+ 
+pipeline {
+	agent {
+		docker {
+        		image 'node:9.11.1'
+    			customWorkspace "${env.JENKINS_HOME}/workspace/proyecto/${env.JOB_NAME}/${env.gitlabBranch}"
+		}
+	}
+
+	stages {
+ 		stage('Analisis de Código Estático') {
+        		steps {
+				echo 'Calidad de Código - Sonarqube'
+				sh "cat init.txt"
+				echo "BRANCH: ${env.gitlabBranch}"
+ 	        	        echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
+		      	}	
+  		}
+	 	
+		stage('Construcción de Artefactos') {
+			parallel {
+				stage ('Imagen Docker'){
+					steps {
+        	    				sh "echo 'Construyendo imagen docker'; sleep 1s"
+              					sh "echo 'Almacenando imagen'; sleep 1s"
+        				}
+				}
+				stage ('Helm Chart'){
+					steps {
+						sh "echo 'Construyendo chart'; sleep 1s"
+                                	        sh "echo 'Almacenando chart'; sleep 1s"
+					}
+				}
+			}
+		 }
+ 
+ 	stage('Desplegando') {
+        	steps {
+             		echo 'Deploying....'
+        	}
+ 	}
+
+	stage('Pruebas Dinámicas') {
+                steps {
+                        parallel (
+                                "Pruebas Unitarias": {sh "echo 'Ejecutando Pruebas Unitarias'; sleep 1s"},
+                                "Pruebas de Regresión": {sh "echo 'Ejecutando Pruebas de Regresión'; sleep 1s"},
+				"Verificando Script Performance": {sh "echo 'Ejecutando la verificación del script para Pruebas de Performance'; sleep 1s"}
+                        )
+                }
+         }
+ }
+}
